@@ -1,0 +1,150 @@
+version: "3.8"
+
+services:
+  # -------------------------
+  # Infrastructure
+  # -------------------------
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"    # AMQP
+      - "15672:15672"  # Management UI
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:15672/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:6
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping').ok || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    restart: unless-stopped
+
+  elastic:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.2
+    container_name: elastic
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - elastic-data:/usr/share/elasticsearch/data
+    restart: unless-stopped
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.10.2
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elastic:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elastic
+    restart: unless-stopped
+
+  # -------------------------
+  # Application services
+  # -------------------------
+  task-router:
+    build: ./task-router
+    container_name: task-router
+    ports:
+      - "3000:3000"
+    depends_on:
+      - rabbitmq
+      - mongo
+    environment:
+      - RABBIT_URL=amqp://guest:guest@rabbitmq:5672
+      - MONGO_URL=mongodb://mongo:27017/commagg
+      - NODE_ENV=production
+    restart: unless-stopped
+
+  delivery-email:
+    build: ./delivery/delivery-email
+    container_name: delivery-email
+    depends_on:
+      - rabbitmq
+      - mongo
+    environment:
+      - RABBIT_URL=amqp://guest:guest@rabbitmq:5672
+      - MONGO_URL=mongodb://mongo:27017/commagg
+      - CHANNEL=email
+      - FAIL_RATE=0.2
+      - NODE_ENV=production
+    restart: unless-stopped
+
+  delivery-sms:
+    build: ./delivery/delivery-sms
+    container_name: delivery-sms
+    depends_on:
+      - rabbitmq
+      - mongo
+    environment:
+      - RABBIT_URL=amqp://guest:guest@rabbitmq:5672
+      - MONGO_URL=mongodb://mongo:27017/commagg
+      - CHANNEL=sms
+      - FAIL_RATE=0.2
+      - NODE_ENV=production
+    restart: unless-stopped
+
+  delivery-whatsapp:
+    build: ./delivery/delivery-whatsapp
+    container_name: delivery-whatsapp
+    depends_on:
+      - rabbitmq
+      - mongo
+    environment:
+      - RABBIT_URL=amqp://guest:guest@rabbitmq:5672
+      - MONGO_URL=mongodb://mongo:27017/commagg
+      - CHANNEL=whatsapp
+      - FAIL_RATE=0.2
+      - NODE_ENV=production
+    restart: unless-stopped
+
+  logging:
+    build: ./logging
+    container_name: logging
+    ports:
+      - "3002:3002"
+    depends_on:
+      - rabbitmq
+      - elastic
+      - mongo
+    environment:
+      - RABBIT_URL=amqp://guest:guest@rabbitmq:5672
+      - ELASTIC_URL=http://elastic:9200
+      - MONGO_URL=mongodb://mongo:27017/commagg
+      - NODE_ENV=production
+    restart: unless-stopped
+
+volumes:
+  mongo-data:
+  elastic-data:
