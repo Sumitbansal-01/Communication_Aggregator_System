@@ -1,10 +1,8 @@
 {
-  "name": "delivery-common",
+  "name": "delivery-sms",
   "version": "1.0.0",
   "private": true,
-  "scripts": {
-    "start": "node index.js"
-  },
+  "scripts": { "start": "node index.js" },
   "dependencies": {
     "amqplib": "^0.10.3",
     "mongoose": "^7.3.1",

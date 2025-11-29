@@ -1,14 +1,32 @@
-const mongoose = require('mongoose');
-const { Schema } = mongoose;
+// task-router/models.js
+const mongoose = require("mongoose");
 
-const MessageSchema = new Schema({
-  messageId: { type: String, unique: true },
-  idempotencyKey: { type: String, index: { unique: true, sparse: true } },
-  hash: String,
-  channel: String,
-  status: String,
-  attempts: { type: Number, default: 0 },
-  createdAt: { type: Date, default: Date.now }
-});
+const MessageSchema = new mongoose.Schema(
+  {
+    messageId: { type: String, required: true, unique: true },
 
-module.exports = { Message: mongoose.model('Message', MessageSchema) };
+    // Idempotency
+    hash: { type: String, unique: true },
+
+    // Message fields
+    channel: { type: String, required: true },       // "email" | "sms" | "whatsapp"
+    to: { type: String, required: true },
+    from: { type: String },
+    subject: { type: String },
+    body: { type: String, required: true },
+    metadata: { type: Object },
+
+    // Status: Task Router always sets to "queued"
+    status: { type: String, default: "queued" },
+
+    // Distributed tracing
+    trace_id: { type: String, required: true },
+
+    createdAt: { type: Date, default: Date.now },
+
+    updatedAt: { type: Date, default: Date.now }
+  },
+  { collection: "messages" }
+);
+
+module.exports = mongoose.model("Message", MessageSchema);
