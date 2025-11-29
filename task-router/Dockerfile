@@ -8,7 +8,7 @@ COPY package*.json ./
 
 # production-only deps
 ENV NODE_ENV=production
-RUN npm ci --omit=dev --no-audit --no-fund
+RUN npm install --production --no-audit --no-fund
 
 # copy app
 COPY . .
