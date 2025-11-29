@@ -35,6 +35,8 @@ When a message is submitted, the Task Router validates it, makes sure it's not a
     2. Kibana — http://localhost:5601
     3. Elasticsearch — http://localhost:9200
     4. Task Router API — http://localhost:3000/api/v1/messages
+5. Stop the whole running system by: 
+```sudo docker-compose down```
 
 ## API Usage
 All messages go through:
