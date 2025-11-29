@@ -29,7 +29,7 @@ When a message is submitted, the Task Router validates it, makes sure it's not a
 2. Move into the project folder:
 ```cd Communication_Aggregator_System```
 3. Start the whole system using Docker Compose:
-```docker compose up --build -d```
+```sudo docker-compose up --build -d```
 4. Once everything is running, you can check:
     1. RabbitMQ Dashboard — http://localhost:15672
     2. Kibana — http://localhost:5601
